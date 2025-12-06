@@ -1,31 +1,18 @@
-/**
- * BrawlBotTools
- * Bot que pega meta/picks/bans do Brawlify e envia automaticamente no canal #informações.
- *
- * Variáveis de ambiente que você precisa configurar na hospedagem:
- * - DISCORD_TOKEN : token do bot
- * - CHANNEL_ID    : ID do canal de destino (#informações)
- *
- * O bot atualiza a cada 30 minutos.
- */
-
+// BrawlBotTools - Meta Completa (Mapas, Picks, Bans)
 require("dotenv").config();
-
 const axios = require("axios");
 const cheerio = require("cheerio");
 const { Client, GatewayIntentBits, EmbedBuilder } = require("discord.js");
 
 const TOKEN = process.env.DISCORD_TOKEN;
 const CHANNEL_ID = process.env.CHANNEL_ID;
-const CHECK_INTERVAL_MS = 30 * 60 * 1000; // 30 minutos
 
 if (!TOKEN) {
-  console.error("ERRO: Você precisa configurar DISCORD_TOKEN nas variáveis de ambiente.");
+  console.error("ERRO: DISCORD_TOKEN não configurado.");
   process.exit(1);
 }
-
 if (!CHANNEL_ID) {
-  console.error("ERRO: Você precisa configurar CHANNEL_ID nas variáveis de ambiente.");
+  console.error("ERRO: CHANNEL_ID não configurado.");
   process.exit(1);
 }
 
@@ -37,95 +24,78 @@ const client = new Client({
   ]
 });
 
-// -----------------------
-// Função: Pegar meta do Brawlify (versão protegida)
-// -----------------------
-async function fetchMeta() {
+// ---------------------------
+// FUNÇÃO: META COMPLETA DO BRAWLIFY
+// ---------------------------
+async function fetchFullMeta() {
   try {
-    const response = await axios.get("https://brawlify.com/br/", {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
-        "Accept-Language": "pt-BR,pt;q=0.9",
-        "Accept":
-          "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"
-      }
+    const url = "https://brawlify.com/pt/";
+    const response = await axios.get(url, {
+      headers: { "User-Agent": "Mozilla/5.0" }
     });
 
     const $ = cheerio.load(response.data);
-    const blocks = [];
+    const sections = [];
 
-    $("section").each((i, sec) => {
-      const title = $(sec).find("h2, h3").first().text().trim();
-      if (!title) return;
+    // Cada cartão de modo/mapa
+    $(".mode-card").each((i, sec) => {
+      const mapa = $(sec).find(".mode-title").text().trim();
 
       const picks = [];
       $(sec)
-        .find("div a, div span")
-        .each((i, el) => {
-          const txt = $(el).text().trim();
-          if (txt && txt.length < 40 && /[A-Za-zÀ-ú]/.test(txt)) picks.push(txt);
-        });
+        .find(".brawler-list .brawler-name")
+        .each((i, el) => picks.push($(el).text().trim()));
 
-      if (picks.length > 0) {
-        blocks.push({
-          title: title,
+      if (mapa && picks.length) {
+        sections.push({
+          mapa,
           picks: [...new Set(picks)].slice(0, 10)
         });
       }
     });
 
-    return blocks.slice(0, 5);
-  } catch (err) {
-    console.error("Erro ao buscar dados do Brawlify:", err.message);
+    return sections;
+  } catch (e) {
+    console.error("Erro ao buscar meta:", e.message);
     return null;
   }
 }
 
+// ---------------------------
+// FUNÇÃO: Enviar no Discord
+// ---------------------------
+async function sendFullMeta(channel) {
+  const meta = await fetchFullMeta();
+  if (!meta) return channel.send("❌ Não consegui buscar a meta do Brawlify.");
 
-// -----------------------
-// Função: Enviar embed no Discord
-// -----------------------
-async function sendMeta(channel) {
-  const data = await fetchMeta();
-  if (!data || data.length === 0) {
-    await channel.send("❌ Não foi possível obter os dados do Brawlify.");
-    return;
-  }
-
-  for (const block of data) {
+  for (const m of meta) {
     const embed = new EmbedBuilder()
-      .setTitle(`📊 ${block.title}`)
-      .setDescription(block.picks.join(" • "))
+      .setTitle("📍 Mapa: " + m.mapa)
+      .setDescription("**Melhores picks:**\n" + m.picks.join(" • "))
       .setColor("Blue")
-      .setFooter({ text: "Fonte: brawlify.com" })
       .setTimestamp();
 
     await channel.send({ embeds: [embed] });
   }
 }
 
-// -----------------------
-// Bot pronto
-// -----------------------
+// ---------------------------
+// BOT ONLINE
+// ---------------------------
 client.once("ready", async () => {
-  console.log(`✔️ Bot logado como ${client.user.tag}`);
+  console.log("✔️ Bot online:", client.user.tag);
 
   const channel = await client.channels.fetch(CHANNEL_ID).catch(() => null);
   if (!channel) {
-    console.error("ERRO: Não encontrei o canal. O ID está correto?");
+    console.error("ERRO: canal não encontrado. Verifique o CHANNEL_ID.");
     return;
   }
 
-  // Enviar imediatamente ao iniciar
-  await sendMeta(channel);
+  // Enviar imediatamente
+  await sendFullMeta(channel);
 
-  // Atualizar automaticamente
-  setInterval(async () => {
-    console.log("🔄 Atualizando meta...");
-    await sendMeta(channel);
-  }, CHECK_INTERVAL_MS);
+  // Atualizar tudo a cada 30 min
+  setInterval(() => sendFullMeta(channel), 30 * 60 * 1000);
 });
 
-// -----------------------
 client.login(TOKEN);
