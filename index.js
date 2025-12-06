@@ -40,16 +40,25 @@ const client = new Client({
 // -----------------------
 // Função: Pegar meta do Brawlify
 // -----------------------
+// -----------------------
+// Função: Pegar meta do Brawlify (com headers reais)
+// -----------------------
 async function fetchMeta() {
   try {
     const url = "https://brawlify.com/br/";
     const response = await axios.get(url, {
-      headers: { "User-Agent": "Mozilla/5.0" }
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept-Language": "pt-BR,pt;q=0.8,en-US;q=0.5,en;q=0.3",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache",
+        "Upgrade-Insecure-Requests": "1"
+      }
     });
 
     const $ = cheerio.load(response.data);
 
-    // Coleta flexível para acompanhar mudanças no site
     const blocks = [];
 
     $("section").each((i, sec) => {
@@ -73,6 +82,7 @@ async function fetchMeta() {
     });
 
     return blocks.slice(0, 5);
+
   } catch (err) {
     console.error("Erro ao buscar dados do Brawlify:", err.message);
     return null;
