@@ -9,6 +9,8 @@
  * O bot atualiza a cada 30 minutos.
  */
 
+require("dotenv").config();
+
 const axios = require("axios");
 const cheerio = require("cheerio");
 const { Client, GatewayIntentBits, EmbedBuilder } = require("discord.js");
