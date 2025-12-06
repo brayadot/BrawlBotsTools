@@ -38,22 +38,19 @@ const client = new Client({
 });
 
 // -----------------------
-// Função: Pegar meta do Brawlify
-// -----------------------
-// -----------------------
-// Função: Pegar meta do Brawlify (com headers reais)
+// Função: Pegar meta do Brawlify (versão protegida)
 // -----------------------
 async function fetchMeta() {
   try {
-    const url = "https://brawlify.com/br/";
-    const response = await axios.get(url, {
+    const response = await axios.get("https://brawlify.com/br/", {
       headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept-Language": "pt-BR,pt;q=0.8,en-US;q=0.5,en;q=0.3",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "User-Agent": 
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml",
+        "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+        "Referer": "https://www.google.com/",
         "Cache-Control": "no-cache",
-        "Pragma": "no-cache",
-        "Upgrade-Insecure-Requests": "1"
+        "Pragma": "no-cache"
       }
     });
 
@@ -70,21 +67,22 @@ async function fetchMeta() {
         .find("div a, div span")
         .each((i, el) => {
           const t = $(el).text().trim();
-          if (t && t.length < 40 && /[A-Za-zÀ-ú]/.test(t)) picks.push(t);
+          if (t && t.length < 40 && /[A-Za-zÀ-ú]/.test(t))
+            picks.push(t);
         });
 
       if (picks.length > 0) {
         blocks.push({
-          title: title,
-          picks: [...new Set(picks)].slice(0, 10)
+          title,
+          picks: [...new Set(picks)].slice(0, 10),
         });
       }
     });
 
     return blocks.slice(0, 5);
 
-  } catch (err) {
-    console.error("Erro ao buscar dados do Brawlify:", err.message);
+  } catch (error) {
+    console.error("Erro ao buscar dados do Brawlify:", error.message);
     return null;
   }
 }
