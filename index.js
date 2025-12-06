@@ -44,18 +44,15 @@ async function fetchMeta() {
   try {
     const response = await axios.get("https://brawlify.com/br/", {
       headers: {
-        "User-Agent": 
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml",
-        "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
-        "Referer": "https://www.google.com/",
-        "Cache-Control": "no-cache",
-        "Pragma": "no-cache"
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+        "Accept-Language": "pt-BR,pt;q=0.9",
+        "Accept":
+          "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"
       }
     });
 
     const $ = cheerio.load(response.data);
-
     const blocks = [];
 
     $("section").each((i, sec) => {
@@ -66,26 +63,25 @@ async function fetchMeta() {
       $(sec)
         .find("div a, div span")
         .each((i, el) => {
-          const t = $(el).text().trim();
-          if (t && t.length < 40 && /[A-Za-zÀ-ú]/.test(t))
-            picks.push(t);
+          const txt = $(el).text().trim();
+          if (txt && txt.length < 40 && /[A-Za-zÀ-ú]/.test(txt)) picks.push(txt);
         });
 
       if (picks.length > 0) {
         blocks.push({
-          title,
-          picks: [...new Set(picks)].slice(0, 10),
+          title: title,
+          picks: [...new Set(picks)].slice(0, 10)
         });
       }
     });
 
     return blocks.slice(0, 5);
-
-  } catch (error) {
-    console.error("Erro ao buscar dados do Brawlify:", error.message);
+  } catch (err) {
+    console.error("Erro ao buscar dados do Brawlify:", err.message);
     return null;
   }
 }
+
 
 // -----------------------
 // Função: Enviar embed no Discord
